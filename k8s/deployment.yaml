@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: s3-presigned-api
+  namespace: s3-presigned-api
+  labels:
+    app: s3-presigned-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: s3-presigned-api
+  template:
+    metadata:
+      labels:
+        app: s3-presigned-api
+    spec:
+      containers:
+      - name: s3-presigned-api
+        image: your-registry/s3-presigned-api:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: s3-presigned-api-secret
+              key: AWS_ACCESS_KEY_ID
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: s3-presigned-api-secret
+              key: AWS_SECRET_ACCESS_KEY
+        envFrom:
+        - configMapRef:
+            name: s3-presigned-api-config
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL

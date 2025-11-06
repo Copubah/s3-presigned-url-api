@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: s3-presigned-api-config
+  namespace: s3-presigned-api
+data:
+  AWS_REGION: "us-east-1"
+  PRESIGNED_URL_EXPIRATION: "600"
+  MAX_FILE_SIZE: "52428800"
+  # S3_BUCKET_NAME will be set via environment-specific overlays

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S3 Presigned URL Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success {
+            color: green;
+        }
+        .error {
+            color: red;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+        }
+        .file-list {
+            margin-top: 20px;
+        }
+        .file-item {
+            padding: 10px;
+            border: 1px solid #eee;
+            margin: 5px 0;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <h1>S3 Presigned URL Demo</h1>
+    
+    <!-- Upload Section -->
+    <div class="container">
+        <h2>File Upload</h2>
+        <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.gif,.pdf,.txt,.doc,.docx,.mp4,.mp3,.zip">
+        <br>
+        <button onclick="uploadFile()">Upload File</button>
+        <div id="uploadStatus"></div>
+        <div id="uploadProgress"></div>
+    </div>
+    
+    <!-- File List Section -->
+    <div class="container">
+        <h2>Files</h2>
+        <button onclick="listFiles()">Refresh File List</button>
+        <div id="fileList" class="file-list"></div>
+    </div>
+    
+    <!-- Download Section -->
+    <div class="container">
+        <h2>Download File</h2>
+        <input type="text" id="fileKeyInput" placeholder="Enter file key (e.g., uploads/filename.pdf)" style="width: 300px;">
+        <br>
+        <button onclick="downloadFile()">Download File</button>
+        <div id="downloadStatus"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8000';
+
+        async function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const statusDiv = document.getElementById('uploadStatus');
+            const progressDiv = document.getElementById('uploadProgress');
+            
+            if (!fileInput.files[0]) {
+                statusDiv.innerHTML = '<span class="error">Please select a file</span>';
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            statusDiv.innerHTML = 'Getting upload URL...';
+            progressDiv.innerHTML = '';
+            
+            try {
+                // Step 1: Get presigned URL
+                const uploadUrlResponse = await fetch(`${API_BASE_URL}/upload-url`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        filename: file.name,
+                        content_type: file.type
+                    })
+                });
+                
+                if (!uploadUrlResponse.ok) {
+                    const error = await uploadUrlResponse.json();
+                    throw new Error(error.detail || 'Failed to get upload URL');
+                }
+                
+                const uploadData = await uploadUrlResponse.json();
+                statusDiv.innerHTML = 'Uploading file...';
+                
+                // Step 2: Upload file to S3
+                const uploadResponse = await fetch(uploadData.presigned_url, {
+                    method: 'PUT',
+                    body: file,
+                    headers: {
+                        'Content-Type': file.type
+                    }
+                });
+                
+                if (uploadResponse.ok) {
+                    statusDiv.innerHTML = `<span class="success">File uploaded successfully!</span><br>File key: ${uploadData.file_key}`;
+                    fileInput.value = ''; // Clear the input
+                    listFiles(); // Refresh file list
+                } else {
+                    throw new Error(`Upload failed: ${uploadResponse.status}`);
+                }
+                
+            } catch (error) {
+                statusDiv.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+            }
+        }
+
+        async function listFiles() {
+            const fileListDiv = document.getElementById('fileList');
+            fileListDiv.innerHTML = 'Loading files...';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/files`);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch files');
+                }
+                
+                const data = await response.json();
+                
+                if (data.files.length === 0) {
+                    fileListDiv.innerHTML = 'No files found';
+                    return;
+                }
+                
+                let html = `<h3>Files (${data.count}):</h3>`;
+                data.files.forEach(file => {
+                    const sizeKB = Math.round(file.size / 1024);
+                    const date = new Date(file.last_modified).toLocaleString();
+                    html += `
+                        <div class="file-item">
+                            <strong>${file.key}</strong><br>
+                            Size: ${sizeKB} KB | Modified: ${date}<br>
+                            <button onclick="downloadFileByKey('${file.key}')">Download</button>
+                            <button onclick="deleteFile('${file.key}')" style="background-color: #dc3545;">Delete</button>
+                        </div>
+                    `;
+                });
+                
+                fileListDiv.innerHTML = html;
+                
+            } catch (error) {
+                fileListDiv.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+            }
+        }
+
+        async function downloadFile() {
+            const fileKey = document.getElementById('fileKeyInput').value.trim();
+            const statusDiv = document.getElementById('downloadStatus');
+            
+            if (!fileKey) {
+                statusDiv.innerHTML = '<span class="error">Please enter a file key</span>';
+                return;
+            }
+            
+            downloadFileByKey(fileKey, statusDiv);
+        }
+
+        async function downloadFileByKey(fileKey, statusDiv = null) {
+            if (!statusDiv) {
+                statusDiv = document.getElementById('downloadStatus');
+            }
+            
+            statusDiv.innerHTML = 'Getting download URL...';
+            
+            try {
+                // Step 1: Get presigned URL
+                const downloadUrlResponse = await fetch(`${API_BASE_URL}/download-url`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        file_key: fileKey
+                    })
+                });
+                
+                if (!downloadUrlResponse.ok) {
+                    const error = await downloadUrlResponse.json();
+                    throw new Error(error.detail || 'Failed to get download URL');
+                }
+                
+                const downloadData = await downloadUrlResponse.json();
+                statusDiv.innerHTML = 'Downloading file...';
+                
+                // Step 2: Download file from S3
+                const downloadResponse = await fetch(downloadData.presigned_url);
+                
+                if (!downloadResponse.ok) {
+                    throw new Error(`Download failed: ${downloadResponse.status}`);
+                }
+                
+                // Create download link
+                const blob = await downloadResponse.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileKey.split('/').pop(); // Get filename from key
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                statusDiv.innerHTML = '<span class="success">File downloaded successfully!</span>';
+                
+            } catch (error) {
+                statusDiv.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+            }
+        }
+
+        async function deleteFile(fileKey) {
+            if (!confirm(`Are you sure you want to delete ${fileKey}?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/files/${encodeURIComponent(fileKey)}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    alert('File deleted successfully!');
+                    listFiles(); // Refresh file list
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to delete file');
+                }
+                
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        }
+
+        // Load files on page load
+        window.onload = function() {
+            listFiles();
+        };
+    </script>
+</body>
+</html>

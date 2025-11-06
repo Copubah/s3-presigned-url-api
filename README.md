@@ -39,7 +39,7 @@ graph TB
     
     subgraph "Security Features"
         API -->|File type validation| API
-        API -->|Temporary URLs (10min)| API
+        API -->|Temporary URLs 10min| API
         API -->|Unique file keys| API
     end
 ```

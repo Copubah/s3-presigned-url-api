@@ -8,9 +8,9 @@ This document outlines the security features and best practices implemented in t
 
 The API uses JWT-based authentication with role-based permissions:
 
-- **Authentication**: All endpoints require valid JWT tokens
-- **Authorization**: Users need specific permissions (upload, download, list, delete)
-- **Token Expiration**: Configurable token lifetime (default: 24 hours)
+- Authentication: All endpoints require valid JWT tokens
+- Authorization: Users need specific permissions (upload, download, list, delete)
+- Token Expiration: Configurable token lifetime (default: 24 hours)
 
 #### Getting Started with Authentication
 
@@ -31,10 +31,10 @@ headers = {"Authorization": f"Bearer {token}"}
 
 Prevents abuse with configurable rate limits per user per endpoint:
 
-- **Upload URLs**: 10 requests per minute (default)
-- **Download URLs**: 30 requests per minute (default)
-- **File Listing**: 5 requests per minute (default)
-- **File Deletion**: 5 requests per minute (default)
+- Upload URLs: 10 requests per minute (default)
+- Download URLs: 30 requests per minute (default)
+- File Listing: 5 requests per minute (default)
+- File Deletion: 5 requests per minute (default)
 
 Rate limits return HTTP 429 with `Retry-After` header when exceeded.
 
@@ -73,10 +73,10 @@ All security events are logged to `logs/audit.log` in JSON format:
 
 Multiple layers of file type validation:
 
-- **Allowed Types**: Configurable whitelist of permitted file extensions
-- **Blocked Types**: Hardcoded blacklist of dangerous file types
-- **MIME Type Validation**: Content-Type header enforcement
-- **Extension Blocking**: Prevents executable files (.exe, .bat, .sh, etc.)
+- Allowed Types: Configurable whitelist of permitted file extensions
+- Blocked Types: Hardcoded blacklist of dangerous file types
+- MIME Type Validation: Content-Type header enforcement
+- Extension Blocking: Prevents executable files (.exe, .bat, .sh, etc.)
 
 #### Blocked File Types
 
@@ -91,8 +91,8 @@ BLOCKED_FILE_TYPES = {
 
 Different security levels based on environment:
 
-- **Development**: API docs enabled, relaxed CORS
-- **Production**: API docs disabled, strict CORS, trusted host middleware
+- Development: API docs enabled, relaxed CORS
+- Production: API docs disabled, strict CORS, trusted host middleware
 
 ## Security Configuration
 
@@ -164,11 +164,11 @@ The API requires minimal IAM permissions:
 
 ### Key Metrics to Monitor
 
-1. **Authentication Failures**: Unusual patterns may indicate attacks
-2. **Rate Limit Violations**: High rates may indicate abuse
-3. **File Type Violations**: Attempts to upload blocked files
-4. **Large File Uploads**: Monitor for unusual file sizes
-5. **Geographic Anomalies**: Unusual access patterns by location
+1. Authentication Failures: Unusual patterns may indicate attacks
+2. Rate Limit Violations: High rates may indicate abuse
+3. File Type Violations: Attempts to upload blocked files
+4. Large File Uploads: Monitor for unusual file sizes
+5. Geographic Anomalies: Unusual access patterns by location
 
 ### Recommended Alerts
 
@@ -181,30 +181,30 @@ The API requires minimal IAM permissions:
 
 ### For Developers
 
-1. **Never log sensitive data** (tokens, credentials)
-2. **Validate all inputs** before processing
-3. **Use HTTPS only** in production
-4. **Rotate JWT secrets** regularly
-5. **Monitor audit logs** for suspicious activity
+1. Never log sensitive data (tokens, credentials)
+2. Validate all inputs before processing
+3. Use HTTPS only in production
+4. Rotate JWT secrets regularly
+5. Monitor audit logs for suspicious activity
 
 ### For Operations
 
-1. **Regular security updates** for dependencies
-2. **Log monitoring and alerting** setup
-3. **Backup and disaster recovery** planning
-4. **Network security** (VPC, security groups)
-5. **Regular security audits** and penetration testing
+1. Regular security updates for dependencies
+2. Log monitoring and alerting setup
+3. Backup and disaster recovery planning
+4. Network security (VPC, security groups)
+5. Regular security audits and penetration testing
 
 ## Incident Response
 
 ### Security Incident Checklist
 
-1. **Identify** the scope and impact
-2. **Contain** the threat (disable accounts, block IPs)
-3. **Investigate** using audit logs
-4. **Remediate** vulnerabilities
-5. **Document** lessons learned
-6. **Update** security measures
+1. Identify the scope and impact
+2. Contain the threat (disable accounts, block IPs)
+3. Investigate using audit logs
+4. Remediate vulnerabilities
+5. Document lessons learned
+6. Update security measures
 
 ### Emergency Contacts
 
@@ -216,10 +216,10 @@ The API requires minimal IAM permissions:
 
 This API implements security controls that support:
 
-- **SOC 2 Type II** compliance
-- **GDPR** data protection requirements
-- **HIPAA** security safeguards (with additional controls)
-- **PCI DSS** requirements (for payment-related files)
+- SOC 2 Type II compliance
+- GDPR data protection requirements
+- HIPAA security safeguards (with additional controls)
+- PCI DSS requirements (for payment-related files)
 
 ## Security Updates
 
